@@ -417,7 +417,7 @@
 
 	{#if complex}
 	<svg viewBox="-3 -3 {bufferLength+10} {40+5}" width="400" height="200" class="graph" preserveAspectRatio="none">
-		<path  d="{outputComplexMag.map((v,i) => `M${((follow?-index:0)+i+bufferLength)%bufferLength+1},20 v${v/bufferMagMax*40}`).join('')}z" stroke="red" stroke-width="1" opacity="0.6" />
+		<path  d="{outputComplexMag.map((v,i) => `M${((follow?-index:0)+i+bufferLength)%bufferLength+1},20 v${-v/bufferMagMax*40}`).join('')}z" stroke="red" stroke-width="1" opacity="0.6" />
 		<path  d="{outputComplexPhase.map((v,i) => `M${((follow?-index:0)+i+bufferLength)%bufferLength+1},20 v${v/phaseMax*40}`).join('')}z" stroke="orange" stroke-width="1" opacity="0.6" />
 		
 		<path  d="M0,0V40V20H{bufferLength+3}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke" fill="none" />
@@ -426,8 +426,8 @@
 	</svg>
 	{:else}
 	<svg viewBox="-3 -3 {bufferLength+10} {40+5}" width="400" height="200" class="graph" preserveAspectRatio="none">
-		<path  d="{outputX.map((v,i) => `M${((follow?-index:0)+i+bufferLength)%bufferLength+1},20 v${v/bufferXMax*40}`).join('')}z" stroke="red" stroke-width="1" opacity="0.6" />
-		<path  d="{outputY.map((v,i) => `M${((follow?-index:0)+i+bufferLength)%bufferLength+1},20 v${-v/bufferYMax*40}`).join('')}z" stroke="orange" stroke-width="1" opacity="0.6" />
+		<path  d="{outputX.map((v,i) => `M${((follow?-index:0)+i+bufferLength)%bufferLength+1},20 v${-v/bufferXMax*40}`).join('')}z" stroke="red" stroke-width="1" opacity="0.6" />
+		<path  d="{outputY.map((v,i) => `M${((follow?-index:0)+i+bufferLength)%bufferLength+1},20 v${v/bufferYMax*40}`).join('')}z" stroke="orange" stroke-width="1" opacity="0.6" />
 		
 		<path  d="M0,0V40V20H{bufferLength+3}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke" fill="none" />
 		<path d="M{(!follow?index:bufferLength)},0v40" stroke="yellow" stroke-width="1" vector-effect="non-scaling-stroke"  />
