@@ -25,11 +25,14 @@
 	
 	let svgScreen = null
 	$: svgPoint = svgScreen && svgScreen.createSVGPoint()
+	let basis= false
+	let trace= false
 	let follow = true
 	let complex = true
 	let pause = true
 	let pressed = false
-	let bufferLength = 256
+	let bufferLength = 128
+	let time = bufferLength-1
 	let windowWidth = 1
 	let windowHeight = 1
 	$: windowSize = Math.min(windowHeight, windowWidth)
@@ -53,8 +56,14 @@
 	$: spectrumY = fftShift(fft(bufferY.map((re) => [re,0])));
 	
 	$: spectrumComplex = fftShift(fft(bufferComplex));
-	$: spectrumComplexMag = spectrumComplex.map(([re,im]) => Math.sqrt(re*re+im*im))
-	$: spectrumComplexPhase = spectrumComplex.map(([re,im]) => Math.atan2(im,re))
+	$: spectrumComplexPolar = spectrumComplex.map(([re,im]) => ({mag: Math.sqrt(re*re+im*im), phase: Math.atan2(im,re)}))
+	$: spectrumComplexMag = spectrumComplexPolar.map(({mag}) => mag)
+	$: spectrumComplexPhase = spectrumComplexPolar.map(({phase}) => phase)
+
+	const scl = Math.sqrt(2*bufferLength)
+
+	$: spectrumComplexPartialSum = spectrumComplexPolar.reduce(([[px,py,m], ...lst], {mag, phase}, f) => [[px+2*mag/scl*Math.cos((time+index)%bufferLength*(f-bufferLength/2)*2*Math.PI/bufferLength+phase), py+2*mag/scl*Math.sin((time+index)%bufferLength*2*(f-bufferLength/2)*Math.PI/bufferLength+phase),2*mag/scl], [px,py,m], ...lst], [[0,0]])
+
 
 	$: spectrumXMag = spectrumX.map(([re,im]) => Math.sqrt(re*re+im*im))
 	$: spectrumYMag = spectrumY.map(([re,im]) => Math.sqrt(re*re+im*im))
@@ -177,6 +186,11 @@
 		height: 100%;
 		max-height: 100vh;
 	}
+
+	input[type=range] {
+		margin: 0;
+		padding: 0;
+	}
 	
 	.graph {
 		background: #0005;
@@ -256,6 +270,37 @@
 <div class="app">
 	
 <svg bind:this={svgScreen} viewBox="0 0 {windowSize} {windowSize}" preserveAspectRatio="xMidYMid meet" class="screen">
+
+{#if trace}
+<g>
+	{#each bufferX.slice(1) as _, i}
+<line x1={bufferX[(i+index)%bufferLength]+bufferXMax/2} y1={bufferY[(i+index)%bufferLength]+bufferYMax/2} x2={bufferX[(i+1+index)%bufferLength]+bufferXMax/2} y2={bufferY[(i+1+index)%bufferLength]+bufferYMax/2} stroke="cyan" opacity="0.5"/>
+{/each}
+</g>
+
+<g>
+	{#each outputX.slice(1) as _, i}
+<line x1={outputX[(i+index)%bufferLength]+bufferXMax/2} y1={outputY[(i+index)%bufferLength]+bufferYMax/2} x2={outputX[(i+1+index)%bufferLength]+bufferXMax/2} y2={outputY[(i+1+index)%bufferLength]+bufferYMax/2} stroke="yellow" opacity="0.5"/>
+{/each}
+</g>
+{/if}
+
+{#if basis}
+<g>
+	<circle r={4} fill="red" cx="{spectrumComplexPartialSum[spectrumComplexPartialSum.length-1][0]+bufferXMax/2}" cy="{spectrumComplexPartialSum[spectrumComplexPartialSum.length-1][1]+bufferYMax/2}"/>
+
+	{#each spectrumComplexPartialSum as [x,y,m], i}
+<line 
+x1="{x+bufferXMax/2}" 
+y1="{y+bufferYMax/2}" 
+x2="{spectrumComplexPartialSum[(i-1+spectrumComplexPartialSum.length)%(spectrumComplexPartialSum.length)][0]+bufferXMax/2}" 
+y2="{spectrumComplexPartialSum[(i-1+spectrumComplexPartialSum.length)%(spectrumComplexPartialSum.length)][1]+bufferYMax/2}"
+ stroke="red" opacity={i/spectrumComplexPartialSum.length}/>
+<circle stroke-width="2" fill-opacity="0.1" opacity={i/spectrumComplexPartialSum.length} r={m} fill="red" stroke="red" cx="{x+bufferXMax/2}" cy="{y+bufferYMax/2}"/>
+{/each}
+</g>
+{/if}
+
 {#if complex}
 	<path vector-effect="non-scaling-stroke"  d="M{bufferXMax/2},{bufferYMax/2} h{400} a {400} {400} 0 0 {mouseYRel>0?1:0} {400*mouseXRel/mouseRadius-400} {400*mouseYRel/mouseRadius}" fill="magenta" fill-opacity="0.2" stroke-width="2" transform="translate({bufferXMax/2}, {bufferYMax/2}) scale(0.1) translate({-bufferXMax/2}, {-bufferYMax/2})"/>
 
@@ -309,11 +354,19 @@
 		<label><input type="checkbox" bind:checked={follow} /> Scroll Graph</label>
 		<label><input type="checkbox" bind:checked={pause} /> Pause</label>
 		<label><input type="checkbox" bind:checked={complex} /> Complex Signal</label>
+		<label><input type="checkbox" bind:checked={basis} /> Show Basis</label>
+		<label><input type="checkbox" bind:checked={trace} /> Show Trace</label>
 		
 		<button style="margin-left: auto" on:click={reset}>
 			reset
 		</button>
 	</div>
+
+		{#if basis}
+		<div class="row">
+			<label>Time: <input type="range" min="0" max="{bufferLength-1}" step="0.01" bind:value={time} /></label>
+		</div>
+		{/if}
 	
 {#if complex}
 		
